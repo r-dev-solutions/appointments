@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+const cors = require('cors');
 
 dotenv.config();
 
@@ -18,6 +19,15 @@ const connectDB = async () => {
     process.exit(1);
   }
 };
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Health check endpoint
+app.get('/api', (req, res) => {
+  res.json({ status: 'API is running' });
+});
 
 // User Schema
 const UserSchema = new mongoose.Schema({
@@ -56,6 +66,12 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
 });
 
 // Start server

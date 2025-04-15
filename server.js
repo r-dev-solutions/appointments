@@ -39,7 +39,7 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema);
 
-// Middleware
+// Middleware - Single CORS configuration
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -47,15 +47,30 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Error response format
+const errorResponse = (res, status, message) => {
+  res.status(status).json({ message });
+};
+
+// Password hashing
+const bcrypt = require('bcryptjs');
+const saltRounds = 10;
+
 // Routes
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-    const user = await User.create({ name, email, password, role });
+    // Basic validation
+    if (!name || !email || !password || !role) {
+      return errorResponse(res, 400, 'All fields are required');
+    }
+    
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const user = await User.create({ name, email, password: hashedPassword, role });
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.status(201).json({ token, user });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    errorResponse(res, 400, error.message);
   }
 });
 
@@ -63,13 +78,13 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-    if (!user || user.password !== password) {
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new Error('Invalid credentials');
     }
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token, user });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    errorResponse(res, 400, error.message);
   }
 });
 

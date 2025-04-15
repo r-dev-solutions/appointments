@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: r-soluciones-api
+    env: node
+    build:
+      path: .
+      node_version: 18
+    env_vars:
+      - key: MONGO_URI
+        value: your_mongodb_uri
+      - key: JWT_SECRET
+        value: your_jwt_secret
+      - key: PORT
+        value: 10000
